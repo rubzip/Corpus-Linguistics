@@ -1,60 +1,43 @@
-import spacy
 from collections import defaultdict
 import pandas as pd
+import re
 
-def clean_line(nlp, line):
-    return ' '.join([token.text for token in nlp(line.lower()) if not token.is_stop])
+def tokenize(line):
+    # This function takes a line, converts it to lowercase, filters any non letter char and splits it 
+    return re.sub(r"([^a-z])+", ' ', line.lower()).split()
 
-def count_words(nlp, fname):
+def count_words(fname):
     counter = defaultdict(int)
-    with open(fname, 'r', encoding="utf8") as f:
+    with open(fname, 'r', encoding="utf8", errors="ignore") as f:
         for line in f:
-            for token in clean_line(nlp, line):
+            for token in tokenize(line):
                 counter[token] += 1
     return counter
 
-def count_bigrams(nlp, fname):
+def count_bigrams(fname):
     counter = defaultdict(int)
-    with open(fname, 'r', encoding="utf8") as f:
+    with open(fname, 'r', encoding="utf8", errors="ignore") as f:
         for line in f:
-            cleaned_line = clean_line(nlp, line)
-            for t1, t2 in zip(cleaned_line[:-1], cleaned_line[1:]):
+            clean_line = tokenize(line)
+            for t1, t2 in zip(clean_line[:-1], clean_line[1:]):
                 counter[t1, t2] += 1
     return counter
 
-import spacy
-from collections import defaultdict
-import pandas as pd
+hyperpartisan = count_words("./articles/hyperpartasian.txt")
+print("hyperpartisan done")
+df_hyperpartisan = pd.DataFrame.from_dict(
+    hyperpartisan, 
+    columns=["hyperpartisan_freq"], 
+    orient="index"
+)
 
-def clean_line(nlp, line):
-    return ' '.join([token.text for token in nlp(line.lower()) if not token.is_stop])
-
-def clean_file(fname, fname_out):
-    with open(fname, 'r', encoding="utf-8") as f:
-        content = f.read()
-        
-    nlp = spacy.load("en_core_web_sm")
-    text = clean_line(nlp, content)
-    
-    with open(fname_out, 'w', encoding="utf-8") as f:
-        f.write(text)
-    
-    print(f"File {fname} cleaned into {fname_out}")
-
-clean_file("articles/hyperpartasian.txt", "articles/hyperpartasian-clean.txt")
-clean_file("articles/non-hyperpartasian.txt", "articles/non-hyperpartasian-clean.txt")
-
-
-
-
-
-nlp = spacy.load("en_core_web_sm")
-
-hyperpartisan = count_words(nlp, "./articles/hyperpartisan")
-df_hyperpartisan = pd.DataFrame.from_dict(hyperpartisan, columns=["hyperpartisan_freq"])
-
-non_hyperpartisan = count_words(nlp, "./articles/non-hyperpartisan")
-df_non_hyperpartisan = pd.DataFrame.from_dict(non_hyperpartisan, columns=["non_hyperpartisan_freq"])
+non_hyperpartisan = count_words("./articles/non-hyperpartasian.txt")
+print("non hyperpartisan done")
+df_non_hyperpartisan = pd.DataFrame.from_dict(
+    non_hyperpartisan, 
+    columns=["non_hyperpartisan_freq"], 
+    orient="index"
+)
 
 freqs = pd.merge(df_hyperpartisan, df_non_hyperpartisan)
 freqs.to_csv("frequencies.csv")
